@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="camera">相机</string>
+    <string name="from_album">从相册导入</string>
+    <string name="upload_5">5千克上传</string>
+    <string name="upload_10">10千克上传</string>
+    <string name="upload_15">15千克上传</string>
+</resources>

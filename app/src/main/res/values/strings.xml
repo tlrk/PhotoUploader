@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">PhotoUploader</string>
+    <string name="camera">Camera</string>
+    <string name="from_album">From Album</string>
+    <string name="upload_5">Upload 5kg</string>
+    <string name="upload_10">Upload 10kg</string>
+    <string name="upload_15">Upload 15kg</string>
 </resources>
