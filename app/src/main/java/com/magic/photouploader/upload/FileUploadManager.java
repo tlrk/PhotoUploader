@@ -1,4 +1,4 @@
-package com.magic.photouploader;
+package com.magic.photouploader.upload;
 
 /**
  * Created by tlrkboy on 13/03/2018.

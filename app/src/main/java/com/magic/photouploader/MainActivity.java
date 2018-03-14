@@ -8,10 +8,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.lidong.photopicker.PhotoPickerActivity;
@@ -19,17 +21,30 @@ import com.lidong.photopicker.PhotoPreviewActivity;
 import com.lidong.photopicker.SelectModel;
 import com.lidong.photopicker.intent.PhotoPickerIntent;
 import com.lidong.photopicker.intent.PhotoPreviewIntent;
+import com.magic.photouploader.upload.FlaskClient;
+import com.magic.photouploader.upload.ServiceGenerator;
+import com.magic.photouploader.upload.UploadResult;
 
 import org.json.JSONArray;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends Activity {
 
-    private static final int REQUEST_CODE = 732;
     private static final int REQUEST_CAMERA_CODE = 10;
     private static final int REQUEST_PREVIEW_CODE = 20;
     private static final int MAX_PHOTO_SIZE = 9;
+    private static final String IMAGE_ADD_TAG = "000000";
+    private static final String TAG = "uploader";
 
     private ArrayList<String> imagePaths = new ArrayList<>();
     private GridView gridView;
@@ -41,25 +56,18 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         initGridView();
-//        Button bt = (Button) findViewById(R.id.from_album);
-//        bt.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                // start multiple photos selector
-//                Intent intent = new Intent(MainActivity.this, ImagesSelectorActivity.class);
-//                // max number of images to be selected
-//                intent.putExtra(SelectorSettings.SELECTOR_MAX_IMAGE_NUMBER, 9);
-//                // min size of image which will be shown; to filter tiny images (mainly icons)
-//                intent.putExtra(SelectorSettings.SELECTOR_MIN_IMAGE_SIZE, 100000);
-//                // show camera or not
-//                intent.putExtra(SelectorSettings.SELECTOR_SHOW_CAMERA, true);
-//                // pass current selected images as the initial value
-//                intent.putStringArrayListExtra(SelectorSettings.SELECTOR_INITIAL_SELECTED_LIST, imagePaths);
-//                // start the selector
-//                startActivityForResult(intent, REQUEST_CODE);
-//            }
-//        });
 
+        findViewById(R.id.button5).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        uploadFiles();
+                    }
+                }).start();
+            }
+        });
     }
 
     private void initGridView() {
@@ -71,7 +79,7 @@ public class MainActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String imgs = (String) parent.getItemAtPosition(position);
-                if ("000000".equals(imgs) ){
+                if (IMAGE_ADD_TAG.equals(imgs) ){
                     PhotoPickerIntent intent = new PhotoPickerIntent(MainActivity.this);
                     intent.setSelectModel(SelectModel.MULTI);
                     intent.setShowCarema(true); // 是否显示拍照
@@ -79,6 +87,7 @@ public class MainActivity extends Activity {
                     intent.setSelectedPaths(imagePaths); // 已选中的照片地址， 用于回显选中状态
                     startActivityForResult(intent, REQUEST_CAMERA_CODE);
                 }else{
+                    imagePaths.remove(IMAGE_ADD_TAG);
                     PhotoPreviewIntent intent = new PhotoPreviewIntent(MainActivity.this);
                     intent.setCurrentItem(position);
                     intent.setPhotoPaths(imagePaths);
@@ -86,7 +95,7 @@ public class MainActivity extends Activity {
                 }
             }
         });
-        imagePaths.add("000000");
+        imagePaths.add(IMAGE_ADD_TAG);
         gridAdapter = new GridAdapter(imagePaths);
         gridView.setAdapter(gridAdapter);
     }
@@ -95,21 +104,69 @@ public class MainActivity extends Activity {
         if (imagePaths !=null&& imagePaths.size()>0){
             imagePaths.clear();
         }
-        if (paths.contains("000000")){
-            paths.remove("000000");
+        if (paths.contains(IMAGE_ADD_TAG)){
+            paths.remove(IMAGE_ADD_TAG);
         }
         if (paths.size() < MAX_PHOTO_SIZE) {
-            paths.add("000000");
+            paths.add(IMAGE_ADD_TAG);
         }
         imagePaths.addAll(paths);
         gridAdapter  = new GridAdapter(imagePaths);
         gridView.setAdapter(gridAdapter);
         try{
             JSONArray obj = new JSONArray(imagePaths);
-            Log.e("--", obj.toString());
+            Log.e(TAG, obj.toString());
         }catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    public void uploadFiles() {
+
+        if(imagePaths.size() == 0) {
+            Toast.makeText(MainActivity.this, "不能不选择图片", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Map<String, RequestBody> files = new HashMap<>();
+        final FlaskClient service = ServiceGenerator.createService(FlaskClient.class);
+        for (int i = 0; i < imagePaths.size(); i++) {
+            if (IMAGE_ADD_TAG.equalsIgnoreCase(imagePaths.get(i)))
+                continue;
+            File file = new File(imagePaths.get(i));
+
+            files.put("file" + i + "\"; filename=\"" + file.getName(),
+                    RequestBody.create(MediaType.parse(getMimeType(imagePaths.get(i))),
+                            file));
+        }
+        Call<UploadResult> call = service.uploadMultipleFiles(files);
+        call.enqueue(new Callback<UploadResult>() {
+            @Override
+            public void onResponse(Call<UploadResult> call, Response<UploadResult> response) {
+                if (response.isSuccessful() && response.body().code == 1) {
+                    Toast.makeText(MainActivity.this, "上传成功", Toast.LENGTH_SHORT).show();
+                    Log.i(TAG, "---------------------上传成功-----------------------");
+                    Log.i(TAG, "基础地址为：" + ServiceGenerator.API_BASE_URL);
+                    Log.i(TAG, "图片相对地址为：" + Utils.listToString(response.body().image_urls,','));
+                    Log.i(TAG, "---------------------END-----------------------");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<UploadResult> call, Throwable t) {
+                Toast.makeText(MainActivity.this, "上传失败", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+    }
+
+    public static String getMimeType(String url) {
+        String type = null;
+        String extension = MimeTypeMap.getFileExtensionFromUrl(url);
+        if (extension != null) {
+            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+        }
+        return type;
     }
 
     @Override
@@ -119,34 +176,16 @@ public class MainActivity extends Activity {
             if(resultCode == RESULT_OK) {
 
                 switch (requestCode) {
-                    // 选择照片
                     case REQUEST_CAMERA_CODE:
                         ArrayList<String> list = data.getStringArrayListExtra(PhotoPickerActivity.EXTRA_RESULT);
-//                        Log.d(TAG, "list: " + "list = [" + list.size());
                         loadAdapter(list);
                         break;
-                    // 预览
                     case REQUEST_PREVIEW_CODE:
                         ArrayList<String> ListExtra = data.getStringArrayListExtra(PhotoPreviewActivity.EXTRA_RESULT);
-//                        Log.d(TAG, "ListExtra: " + "ListExtra = [" + ListExtra.size());
                         loadAdapter(ListExtra);
                         break;
                 }
             }
-
-//        if(requestCode == REQUEST_CODE) {
-//            if(resultCode == RESULT_OK) {
-//                imagePaths = data.getStringArrayListExtra(SelectorSettings.SELECTOR_RESULTS);
-//                assert imagePaths != null;
-//
-//                // show results in textview
-//                StringBuilder sb = new StringBuilder();
-//                sb.append(String.format("Totally %d images selected:", imagePaths.size())).append("\n");
-//                for(String result : imagePaths) {
-//                    sb.append(result).append("\n");
-//                }
-//            }
-//        }
     }
 
     private class GridAdapter extends BaseAdapter {
@@ -186,7 +225,7 @@ public class MainActivity extends Activity {
             }
 
             final String path=listUrls.get(position);
-            if (path.equals("000000")){
+            if (path.equals(IMAGE_ADD_TAG)){
                 holder.image.setImageResource(R.drawable.max_quick_bottom_icon_add_normal);
                 holder.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
             }else {
@@ -204,5 +243,7 @@ public class MainActivity extends Activity {
             ImageView image;
         }
     }
+
+
 
 }
