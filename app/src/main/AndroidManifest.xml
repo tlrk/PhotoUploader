@@ -27,6 +27,16 @@
         android:name="com.zfdang.multiple_images_selector.ImagesSelectorActivity"
         android:hardwareAccelerated="false"
         android:configChanges="orientation|screenSize"/>
+
+        <activity
+            android:name="com.lidong.photopicker.PhotoPickerActivity"
+            android:theme="@style/PhotoPickerTheme"
+            android:configChanges="orientation|screenSize"/>
+
+        <activity android:name="com.lidong.photopicker.PhotoPreviewActivity"
+                  android:theme="@style/PhotoPickerTheme"/>
     </application>
+
+
 
 </manifest>

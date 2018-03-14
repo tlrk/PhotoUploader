@@ -11,46 +11,20 @@
     tools:context=".MainActivity">
 
     <ScrollView
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+    </ScrollView>
 
-        <LinearLayout
+        <RelativeLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center_horizontal">
 
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="300dp">
-
-            </RelativeLayout>
-
-
             <LinearLayout
-                android:gravity="center"
-                android:layout_marginLeft="50dp"
-                android:layout_marginRight="50dp"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <ImageView
-                    android:layout_weight="1"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/max_quick_bottom_icon_add_normal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
-                <Button
-                    android:textAllCaps="false"
-                    android:layout_weight="1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/from_album"
-                    android:id="@+id/from_album"/>
-            </LinearLayout>
-
-
-            <LinearLayout
+                android:id="@+id/bottom"
+                android:layout_alignParentBottom="true"
                 android:layout_marginTop="20dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
@@ -78,9 +52,16 @@
                     android:text="@string/upload_15"
                     android:id="@+id/button15"/>
             </LinearLayout>
+            <GridView
+                android:id="@+id/gridView"
+                android:layout_above="@id/bottom"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:horizontalSpacing="@dimen/space_size"
+                android:numColumns="3"
+                android:verticalSpacing="@dimen/space_size" />
 
-        </LinearLayout>
-    </ScrollView>
+        </RelativeLayout>
 
 
 </RelativeLayout>
