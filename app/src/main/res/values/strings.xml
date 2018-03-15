@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">PhotoUploader</string>
+    <string name="upload_hint">Please select photos to upload</string>
     <string name="camera">Camera</string>
     <string name="from_album">From Album</string>
     <string name="upload_5">Upload 5kg</string>

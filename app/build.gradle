@@ -17,9 +17,18 @@ android {
         abortOnError false
     }
 
+    signingConfigs {
+        release {
+            storeFile file("uploader.jks")
+            storePassword "bo958330"
+            keyAlias "tlrkboy"
+            keyPassword "bo958330"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
