@@ -17,6 +17,7 @@ import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -33,10 +34,9 @@ import org.json.JSONArray;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -51,7 +51,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int MAX_PHOTO_SIZE = 9;
     private static final int UPDATE_UI = 90;
     private static final String IMAGE_ADD_TAG = "000000";
-    private static final String TAG = "uploader";
+    private static final String TAG = "MainActivity";
 
     private ArrayList<String> imagePaths = new ArrayList<>();
     private GridView gridView;
@@ -166,31 +166,40 @@ public class MainActivity extends Activity implements View.OnClickListener {
         isUploading = true;
         mHandler.sendEmptyMessage(UPDATE_UI);
         if(imagePaths.size() == 0) {
-            Toast.makeText(MainActivity.this, "不能不选择图片", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, getText(R.string.upload_hint), Toast.LENGTH_SHORT).show();
             return;
         }
 
-        Map<String, RequestBody> files = new HashMap<>();
-        final FlaskClient service = ServiceGenerator.createService(FlaskClient.class);
-        for (int i = 0; i < imagePaths.size(); i++) {
-            if (IMAGE_ADD_TAG.equalsIgnoreCase(imagePaths.get(i)))
-                continue;
-            File file = new File(imagePaths.get(i));
+        int size = imagePaths.contains(IMAGE_ADD_TAG) ? imagePaths.size() - 1 : imagePaths.size();
 
-            files.put("file" + i + "\"; filename=\"" + file.getName(),
-                    RequestBody.create(MediaType.parse(getMimeType(imagePaths.get(i))),
-                            file));
+        MultipartBody.Part[] files = new MultipartBody.Part[size];
+        for (int index = 0; index < size; index++) {
+            if (IMAGE_ADD_TAG.equalsIgnoreCase(imagePaths.get(index))) {
+                continue;
+            } else {
+                File file = new File(imagePaths.get(index));
+                RequestBody surveyBody = RequestBody.create(MediaType.parse(getMimeType(imagePaths.get(index))),
+                        file);
+                files[index] = MultipartBody.Part.createFormData("file", file.getName(), surveyBody);
+            }
         }
-        Call<UploadResult> call = service.uploadMultipleFiles(files);
+
+        final FlaskClient service = ServiceGenerator.createService(FlaskClient.class);
+        Call<UploadResult> call = service.uploadMultipleFiles(weight, files);
+
+        try {
+
+        } catch (Exception e) {
+
+        }
         call.enqueue(new Callback<UploadResult>() {
             @Override
             public void onResponse(Call<UploadResult> call, Response<UploadResult> response) {
-                if (response.isSuccessful() && response.body().code == 1) {
-                    Toast.makeText(MainActivity.this, "上传成功", Toast.LENGTH_SHORT).show();
-                    Log.i(TAG, "---------------------上传成功-----------------------");
-                    Log.i(TAG, "基础地址为：" + ServiceGenerator.API_BASE_URL);
-                    Log.i(TAG, "图片相对地址为：" + Utils.listToString(response.body().image_urls,','));
-                    Log.i(TAG, "---------------------END-----------------------");
+                if (response.isSuccessful() && "1".equalsIgnoreCase(response.body().msg)) {
+                    Toast.makeText(MainActivity.this, getText(R.string.upload_success), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, getText(R.string.upload_failed) + " : " +
+                            response.body().msg, Toast.LENGTH_SHORT).show();
                 }
                 isUploading = false;
                 mHandler.sendEmptyMessage(UPDATE_UI);
@@ -200,7 +209,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             public void onFailure(Call<UploadResult> call, Throwable t) {
                 isUploading = false;
                 mHandler.sendEmptyMessage(UPDATE_UI);
-                Toast.makeText(MainActivity.this, "上传失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, getText(R.string.upload_failed) + " " +
+                        t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -282,6 +292,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 holder = new ViewHolder();
                 convertView = inflater.inflate(R.layout.item_image, parent,false);
                 holder.image = (ImageView) convertView.findViewById(R.id.imageView);
+                holder.mTextView = (TextView) convertView.findViewById(R.id.text);
                 convertView.setTag(holder);
             } else {
                 holder = (ViewHolder)convertView.getTag();
@@ -289,8 +300,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
             final String path=listUrls.get(position);
             if (path.equals(IMAGE_ADD_TAG)){
-                holder.image.setImageResource(R.drawable.max_quick_bottom_icon_add_normal);
-                holder.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                holder.image.setImageResource(R.drawable.ic_camera_alt_black_24dp);
+                holder.image.setPadding(40, 40, 40, 40);
+                holder.mTextView.setText(getText(R.string.add_text));
             }else {
                 Glide.with(MainActivity.this)
                         .load(path)
@@ -299,11 +311,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         .centerCrop()
                         .crossFade()
                         .into(holder.image);
+                holder.mTextView.setText(String.valueOf(position + 1));
             }
             return convertView;
         }
         class ViewHolder {
             ImageView image;
+            TextView mTextView;
         }
     }
 

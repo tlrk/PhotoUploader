@@ -3,8 +3,11 @@
     <string name="app_name">图片上传</string>
     <string name="upload_hint">请选择图片上传</string>
     <string name="camera">相机</string>
+    <string name="upload_success">上传成功</string>
+    <string name="upload_failed">上传失败</string>
     <string name="from_album">从相册导入</string>
     <string name="upload_5">5千克上传</string>
     <string name="upload_15">15千克上传</string>
     <string name="upload_50">50千克上传</string>
+    <string name="add_text">照片或拍照</string>
 </resources>
