@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.os.Bundle;
 
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,8 +13,10 @@ import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -38,17 +42,27 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends Activity {
+import static com.magic.photouploader.R.id.progress;
+
+public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CAMERA_CODE = 10;
     private static final int REQUEST_PREVIEW_CODE = 20;
     private static final int MAX_PHOTO_SIZE = 9;
+    private static final int UPDATE_UI = 90;
     private static final String IMAGE_ADD_TAG = "000000";
     private static final String TAG = "uploader";
 
     private ArrayList<String> imagePaths = new ArrayList<>();
     private GridView gridView;
     private GridAdapter gridAdapter;
+    private volatile boolean isUploading = false;
+
+    Button button5;
+    Button button15;
+    Button button50;
+
+    ProgressBar mProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,19 +70,25 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         initGridView();
-
-        findViewById(R.id.button5).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        uploadFiles();
-                    }
-                }).start();
-            }
-        });
+        mProgressBar = (ProgressBar) findViewById(progress);
+        button5 = (Button) findViewById(R.id.button5);
+        button15 = (Button) findViewById(R.id.button15);
+        button50 = (Button) findViewById(R.id.button50);
+        button5.setOnClickListener(this);
+        button15.setOnClickListener(this);
+        button50.setOnClickListener(this);
     }
+
+
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            if (msg.what == UPDATE_UI) {
+                updateView();
+            }
+        }
+    };
 
     private void initGridView() {
         gridView = (GridView) findViewById(R.id.gridView);
@@ -121,8 +141,30 @@ public class MainActivity extends Activity {
         }
     }
 
-    public void uploadFiles() {
+    private void upload(final int weight) {
+        if (imagePaths.size() == 0 || (imagePaths.size() == 1 && imagePaths.contains(IMAGE_ADD_TAG))) {
+            Toast.makeText(MainActivity.this, getText(R.string.upload_hint), Toast.LENGTH_SHORT).show();
+        } else {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    uploadFiles(weight);
+                }
+            }).start();
+        }
+    }
 
+    private void updateView() {
+        mProgressBar.setVisibility(isUploading? View.VISIBLE : View.INVISIBLE);
+        button5.setEnabled(!isUploading);
+        button15.setEnabled(!isUploading);
+        button50.setEnabled(!isUploading);
+        gridView.setEnabled(!isUploading);
+    }
+
+    public void uploadFiles(int weight) {
+        isUploading = true;
+        mHandler.sendEmptyMessage(UPDATE_UI);
         if(imagePaths.size() == 0) {
             Toast.makeText(MainActivity.this, "不能不选择图片", Toast.LENGTH_SHORT).show();
             return;
@@ -150,13 +192,19 @@ public class MainActivity extends Activity {
                     Log.i(TAG, "图片相对地址为：" + Utils.listToString(response.body().image_urls,','));
                     Log.i(TAG, "---------------------END-----------------------");
                 }
+                isUploading = false;
+                mHandler.sendEmptyMessage(UPDATE_UI);
             }
 
             @Override
             public void onFailure(Call<UploadResult> call, Throwable t) {
+                isUploading = false;
+                mHandler.sendEmptyMessage(UPDATE_UI);
                 Toast.makeText(MainActivity.this, "上传失败", Toast.LENGTH_SHORT).show();
             }
         });
+
+
 
     }
 
@@ -186,6 +234,21 @@ public class MainActivity extends Activity {
                         break;
                 }
             }
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.button5:
+                upload(5);
+                break;
+            case R.id.button15:
+                upload(15);
+                break;
+            case R.id.button50:
+                upload(50);
+                break;
+        }
     }
 
     private class GridAdapter extends BaseAdapter {
@@ -244,6 +307,12 @@ public class MainActivity extends Activity {
         }
     }
 
-
-
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mHandler != null) {
+            mHandler.removeCallbacksAndMessages(null);
+            mHandler = null;
+        }
+    }
 }
