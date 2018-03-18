@@ -194,8 +194,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 call.enqueue(new Callback<UploadResult>() {
                     @Override
                     public void onResponse(Call<UploadResult> call, Response<UploadResult> response) {
-                        count ++;
-                        stopIfNecessary(size);
                         if (response.isSuccessful() && "1".equalsIgnoreCase(response.body().msg)) {
                             Toast.makeText(MainActivity.this, getText(R.string.upload_success), Toast.LENGTH_SHORT).show();
                         } else {
@@ -203,15 +201,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
                                     response.body().msg, Toast.LENGTH_SHORT).show();
                             logBuf.append(response.body().msg + "\n");
                         }
+                        count ++;
+                        stopIfNecessary(size);
                     }
 
                     @Override
                     public void onFailure(Call<UploadResult> call, Throwable t) {
-                        count ++;
-                        stopIfNecessary(size);
                         logBuf.append(t.getMessage() + "\n");
                         Toast.makeText(MainActivity.this, getText(R.string.upload_failed) + " " +
                                 t.getMessage(), Toast.LENGTH_SHORT).show();
+                        count ++;
+                        stopIfNecessary(size);
                     }
                 });
 
@@ -223,7 +223,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private void stopIfNecessary(int size) {
         if (count == size) {
             mLogView.setText(logBuf.toString());
-            logBuf.delete(0, logBuf.length() - 1);
+            if (logBuf.length() > 0) {
+                logBuf.delete(0, logBuf.length() - 1);
+            }
             count = 0;
             isUploading = false;
             mHandler.sendEmptyMessage(UPDATE_UI);
