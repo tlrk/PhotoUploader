@@ -22,7 +22,8 @@ public interface FlaskClient {
     @POST("gasPic/upload.json")
     Call<UploadResult> uploadMultipleFiles(
             @Part("type") int type,
-            @Part MultipartBody.Part[] files);
+            @Part("number") int num,
+            @Part MultipartBody.Part file);
 
 
 

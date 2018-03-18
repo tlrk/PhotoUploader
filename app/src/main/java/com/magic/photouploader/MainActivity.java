@@ -14,6 +14,7 @@ import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -27,6 +28,7 @@ import com.lidong.photopicker.SelectModel;
 import com.lidong.photopicker.intent.PhotoPickerIntent;
 import com.lidong.photopicker.intent.PhotoPreviewIntent;
 import com.magic.photouploader.upload.FlaskClient;
+import com.magic.photouploader.upload.Request;
 import com.magic.photouploader.upload.ServiceGenerator;
 import com.magic.photouploader.upload.UploadResult;
 
@@ -52,7 +54,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int UPDATE_UI = 90;
     private static final String IMAGE_ADD_TAG = "000000";
     private static final String TAG = "MainActivity";
+    private int count = 0;
+    private EditText mLogView;
 
+    private ArrayList<Request> mRequests = new ArrayList<>();
     private ArrayList<String> imagePaths = new ArrayList<>();
     private GridView gridView;
     private GridAdapter gridAdapter;
@@ -63,6 +68,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     Button button50;
 
     ProgressBar mProgressBar;
+    StringBuffer logBuf = new StringBuffer();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +80,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         button5 = (Button) findViewById(R.id.button5);
         button15 = (Button) findViewById(R.id.button15);
         button50 = (Button) findViewById(R.id.button50);
+        mLogView = (EditText) findViewById(R.id.log);
         button5.setOnClickListener(this);
         button15.setOnClickListener(this);
         button50.setOnClickListener(this);
@@ -145,6 +152,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (imagePaths.size() == 0 || (imagePaths.size() == 1 && imagePaths.contains(IMAGE_ADD_TAG))) {
             Toast.makeText(MainActivity.this, getText(R.string.upload_hint), Toast.LENGTH_SHORT).show();
         } else {
+            mLogView.setText(getText(R.string.uploading));
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -170,9 +178,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             return;
         }
 
-        int size = imagePaths.contains(IMAGE_ADD_TAG) ? imagePaths.size() - 1 : imagePaths.size();
+        final int size = imagePaths.contains(IMAGE_ADD_TAG) ? imagePaths.size() - 1 : imagePaths.size();
 
-        MultipartBody.Part[] files = new MultipartBody.Part[size];
         for (int index = 0; index < size; index++) {
             if (IMAGE_ADD_TAG.equalsIgnoreCase(imagePaths.get(index))) {
                 continue;
@@ -180,42 +187,47 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 File file = new File(imagePaths.get(index));
                 RequestBody surveyBody = RequestBody.create(MediaType.parse(getMimeType(imagePaths.get(index))),
                         file);
-                files[index] = MultipartBody.Part.createFormData("file", file.getName(), surveyBody);
+                MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), surveyBody);
+                final FlaskClient service = ServiceGenerator.createService(FlaskClient.class);
+                Call<UploadResult> call = service.uploadMultipleFiles(weight, index + 1, part);
+
+                call.enqueue(new Callback<UploadResult>() {
+                    @Override
+                    public void onResponse(Call<UploadResult> call, Response<UploadResult> response) {
+                        count ++;
+                        stopIfNecessary(size);
+                        if (response.isSuccessful() && "1".equalsIgnoreCase(response.body().msg)) {
+                            Toast.makeText(MainActivity.this, getText(R.string.upload_success), Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(MainActivity.this, getText(R.string.upload_failed) + " : " +
+                                    response.body().msg, Toast.LENGTH_SHORT).show();
+                            logBuf.append(response.body().msg + "\n");
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<UploadResult> call, Throwable t) {
+                        count ++;
+                        stopIfNecessary(size);
+                        logBuf.append(t.getMessage() + "\n");
+                        Toast.makeText(MainActivity.this, getText(R.string.upload_failed) + " " +
+                                t.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+
             }
         }
+    }
 
-        final FlaskClient service = ServiceGenerator.createService(FlaskClient.class);
-        Call<UploadResult> call = service.uploadMultipleFiles(weight, files);
 
-        try {
-
-        } catch (Exception e) {
-
+    private void stopIfNecessary(int size) {
+        if (count == size) {
+            mLogView.setText(logBuf.toString());
+            logBuf.delete(0, logBuf.length() - 1);
+            count = 0;
+            isUploading = false;
+            mHandler.sendEmptyMessage(UPDATE_UI);
         }
-        call.enqueue(new Callback<UploadResult>() {
-            @Override
-            public void onResponse(Call<UploadResult> call, Response<UploadResult> response) {
-                if (response.isSuccessful() && "1".equalsIgnoreCase(response.body().msg)) {
-                    Toast.makeText(MainActivity.this, getText(R.string.upload_success), Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(MainActivity.this, getText(R.string.upload_failed) + " : " +
-                            response.body().msg, Toast.LENGTH_SHORT).show();
-                }
-                isUploading = false;
-                mHandler.sendEmptyMessage(UPDATE_UI);
-            }
-
-            @Override
-            public void onFailure(Call<UploadResult> call, Throwable t) {
-                isUploading = false;
-                mHandler.sendEmptyMessage(UPDATE_UI);
-                Toast.makeText(MainActivity.this, getText(R.string.upload_failed) + " " +
-                        t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-
-
-
     }
 
     public static String getMimeType(String url) {
