@@ -15,7 +15,9 @@
         android:theme="@style/AppTheme"
         android:name=".UploaderApplication">
 
-    <activity android:name=".MainActivity">
+    <activity
+        android:screenOrientation="portrait"
+        android:name=".MainActivity">
         <intent-filter>
             <action android:name="android.intent.action.MAIN"/>
 

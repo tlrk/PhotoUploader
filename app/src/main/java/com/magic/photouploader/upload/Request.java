@@ -5,6 +5,7 @@ package com.magic.photouploader.upload;
  */
 
 public class Request {
-    String filePath;
-    String uploadResult;
+    public String filePath;
+    public String uploadMsg;
+    public int uploadStatus;
 }

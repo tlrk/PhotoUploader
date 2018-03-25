@@ -9,11 +9,6 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity">
-
-    <ScrollView
-        android:scrollbars="none"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
@@ -25,24 +20,27 @@
 
                 <TextView
                     android:id="@+id/hint"
+                    android:layout_marginBottom="20dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/upload_hint"
                     />
-                <GridView
+
+                <android.support.v7.widget.RecyclerView
                     android:id="@+id/gridView"
-                    android:layout_marginTop="20dp"
                     android:layout_below="@id/hint"
-                    android:layout_width="fill_parent"
-                    android:layout_height="370dp"
+                    android:layout_width="match_parent"
                     android:layout_marginBottom="20dp"
-                    android:horizontalSpacing="@dimen/space_size"
-                    android:numColumns="3"
-                    android:verticalSpacing="@dimen/space_size" />
+                    android:layout_height="wrap_content"
+                    >
+                </android.support.v7.widget.RecyclerView>
 
 
                 <LinearLayout
                     android:id="@+id/bottom"
+                    android:gravity="bottom"
+                    android:paddingBottom="30dp"
+                    android:layout_alignParentBottom="true"
                     android:layout_below="@id/gridView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
@@ -50,9 +48,8 @@
                     <Button
                         android:layout_weight="1"
                         android:layout_width="wrap_content"
-                        android:layout_height="55dp"
+                        android:layout_height="60dp"
                         android:textAllCaps="false"
-                        android:padding="15sp"
                         android:textSize="15sp"
                         android:text="@string/upload_5"
                         android:id="@+id/button5"/>
@@ -60,39 +57,20 @@
                     <Button
                         android:layout_weight="1"
                         android:textAllCaps="false"
-                        android:padding="15sp"
                         android:textSize="15sp"
                         android:layout_width="wrap_content"
-                        android:layout_height="55dp"
+                        android:layout_height="60dp"
                         android:text="@string/upload_15"
                         android:id="@+id/button15"/>
                     <Button
                         android:layout_weight="1"
                         android:textAllCaps="false"
-                        android:padding="15sp"
                         android:textSize="15sp"
                         android:layout_width="wrap_content"
-                        android:layout_height="55dp"
+                        android:layout_height="60dp"
                         android:text="@string/upload_50"
                         android:id="@+id/button50"/>
                 </LinearLayout>
-
-                <TextView
-                    android:layout_below="@id/bottom"
-                    android:id="@+id/result"
-                    android:text="@string/upload_result"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
-
-                <EditText
-                    android:editable="false"
-                    android:layout_below="@id/result"
-                    android:id="@+id/log"
-                    android:textSize="10sp"
-                    android:textColor="@color/black"
-                    android:background="@color/gray"                    android:backgroundTint="@android:color/transparent"
-                    android:layout_width="match_parent"
-                    android:layout_height="100dp"/>
 
             </RelativeLayout>
 
@@ -104,11 +82,6 @@
                 android:layout_height="wrap_content"/>
 
         </FrameLayout>
-
-    </ScrollView>
-
-
-
 
 
 </RelativeLayout>
