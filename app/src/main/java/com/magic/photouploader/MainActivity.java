@@ -156,7 +156,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void upload(final int weight) {
-        if (mRequests.size() == 0 || (mRequests.size() == 1 && mRequests.contains(IMAGE_ADD_TAG))) {
+        if (mRequests.size() == 0 || (mRequests.size() == 1 && containsAdd())) {
             Toast.makeText(MainActivity.this, getText(R.string.upload_hint), Toast.LENGTH_SHORT).show();
         } else {
             resetDataStatus();
