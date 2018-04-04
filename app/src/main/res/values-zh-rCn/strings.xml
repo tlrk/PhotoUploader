@@ -12,5 +12,6 @@
     <string name="upload_50">50千克上传</string>
     <string name="add_text">照片或拍照</string>
     <string name="upload_result">结果:</string>
+    <string name="clear">清除</string>
 
 </resources>

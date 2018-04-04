@@ -11,4 +11,5 @@
     <string name="upload_15">Upload 15kg</string>
     <string name="upload_50">Upload 50kg</string>
     <string name="add_text">Images or camera</string>
+    <string name="clear">Clear</string>
 </resources>

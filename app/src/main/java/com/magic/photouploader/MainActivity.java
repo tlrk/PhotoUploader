@@ -1,6 +1,7 @@
 package com.magic.photouploader;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.os.Bundle;
 
 import android.content.Intent;
@@ -9,6 +10,7 @@ import android.os.Message;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,6 +35,8 @@ import com.magic.photouploader.upload.UploadResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +47,7 @@ import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Response;
 
+import static com.magic.photouploader.R.id.cancel_action;
 import static com.magic.photouploader.R.id.progress;
 
 public class MainActivity extends Activity implements View.OnClickListener {
@@ -67,6 +72,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     Button button5;
     Button button15;
     Button button50;
+    Button clear;
 
     ProgressBar mProgressBar;
 
@@ -83,6 +89,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         button5.setOnClickListener(this);
         button15.setOnClickListener(this);
         button50.setOnClickListener(this);
+
+        clear = (Button) findViewById(R.id.clear);
+        clear.setOnClickListener(this);
     }
 
 
@@ -204,8 +213,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 continue;
             } else {
                 String filePath = mRequests.get(index).filePath;
-                File file = new File(filePath);
-                RequestBody surveyBody = RequestBody.create(MediaType.parse(getMimeType(filePath)),
+                Uri uri = Uri.parse(filePath);
+                File file = new File(uri.getPath());
+                String mimeType= URLConnection.guessContentTypeFromName(file.getName());
+                RequestBody surveyBody = RequestBody.create(MediaType.parse(mimeType),
                         file);
                 MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), surveyBody);
                 final FlaskClient service = ServiceGenerator.createService(FlaskClient.class);
@@ -298,6 +309,23 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case R.id.button50:
                 upload(50);
                 break;
+            case R.id.clear:
+                clear();
+                break;
+        }
+    }
+
+    private void clear() {
+        if (mRequests != null && mRequests.size() > 0) {
+            Iterator<Request> it = mRequests.iterator();
+            while(it.hasNext()){
+                Request request = it.next();
+                if(!TextUtils.equals(request.filePath, IMAGE_ADD_TAG)) {
+                    it.remove();
+                }
+            }
+            gridAdapter.notifyDataSetChanged();
+            mHandler.sendEmptyMessage(UPDATE_UI);
         }
     }
 
@@ -334,6 +362,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 holder.image.setImageResource(R.drawable.ic_camera_alt_black_24dp);
                 holder.image.setPadding(40, 40, 40, 40);
                 holder.mTextView.setText(getText(R.string.add_text));
+                holder.mTextView.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.black));
             }else {
                 holder.image.setPadding(0, 0, 0, 0);
                 if (request.uploadStatus == UPLOAD_UPLOADING) {
