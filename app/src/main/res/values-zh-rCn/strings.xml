@@ -13,5 +13,6 @@
     <string name="add_text">照片或拍照</string>
     <string name="upload_result">结果:</string>
     <string name="clear">清除</string>
-
+    <string name="already_uploaded">已经上传</string>
+    <string name="clear_first">请点击清除按钮去掉已上传的文件再上传</string>
 </resources>

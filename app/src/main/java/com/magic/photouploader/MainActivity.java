@@ -1,6 +1,8 @@
 package com.magic.photouploader;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -12,6 +14,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,7 +38,6 @@ import com.magic.photouploader.upload.UploadResult;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -47,7 +49,6 @@ import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Response;
 
-import static com.magic.photouploader.R.id.cancel_action;
 import static com.magic.photouploader.R.id.progress;
 
 public class MainActivity extends Activity implements View.OnClickListener {
@@ -92,6 +93,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         clear = (Button) findViewById(R.id.clear);
         clear.setOnClickListener(this);
+        FilesManager.getInstance().loadData(this.getApplicationContext());
     }
 
 
@@ -141,6 +143,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         for (int i = 0; i < paths.size(); i++) {
             Request request = new Request();
             request.filePath = paths.get(i);
+            request.alreadyUploaded = FilesManager.getInstance().contains(request.filePath);
             request.uploadStatus = UPLOAD_UPLOADING;
             request.uploadMsg = String.valueOf(i + 1);
             mRequests.add(request);
@@ -149,26 +152,25 @@ public class MainActivity extends Activity implements View.OnClickListener {
         gridView.setAdapter(gridAdapter);
     }
 
-    private void resetDataStatus() {
-        Iterator<Request> it = mRequests.iterator();
-        int i = 1;
-        while(it.hasNext()){
-            Request request = it.next();
-            if(request.uploadStatus == UPLOAD_SUCCESS) {
-                it.remove();
-            } else {
-                request.uploadStatus = UPLOAD_UPLOADING;
-                request.uploadMsg = String.valueOf(i++);
+    private boolean needShowAlert() {
+        if (mRequests.size() > 0) {
+            for (Request request : mRequests) {
+                if (request.alreadyUploaded) {
+                    return true;
+                }
             }
         }
-        gridAdapter.notifyDataSetChanged();
+        return false;
     }
 
     private void upload(final int weight) {
         if (mRequests.size() == 0 || (mRequests.size() == 1 && containsAdd())) {
-            Toast.makeText(MainActivity.this, getText(R.string.upload_hint), Toast.LENGTH_SHORT).show();
+            toast(getText(R.string.upload_hint));
         } else {
-            resetDataStatus();
+            if (needShowAlert()) {
+                toast(getText(R.string.clear_first));
+                return;
+            }
 
             new Thread(new Runnable() {
                 @Override
@@ -202,7 +204,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         isUploading = true;
         mHandler.sendEmptyMessage(UPDATE_UI);
         if(mRequests.size() == 0) {
-            Toast.makeText(MainActivity.this, getText(R.string.upload_hint), Toast.LENGTH_SHORT).show();
+            toast(getText(R.string.upload_hint));
             return;
         }
 
@@ -237,7 +239,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         if ("1".equalsIgnoreCase(response.body().msg)) {
                              showMsg = (String) getText(R.string.upload_success);
                             uploadStatus = UPLOAD_SUCCESS;
+                            mRequests.get(index).alreadyUploaded = true;
+                            FilesManager.getInstance().addUploadedFilePath(mRequests.get(index).filePath);
                         } else {
+                            if (response.body().msg.contains("重复")) {
+                                mRequests.get(index).alreadyUploaded = true;
+                                FilesManager.getInstance().addUploadedFilePath(mRequests.get(index).filePath);
+                            }
                             showMsg = response.body().msg;
                         }
                     } else {
@@ -316,17 +324,57 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void clear() {
-        if (mRequests != null && mRequests.size() > 0) {
-            Iterator<Request> it = mRequests.iterator();
-            while(it.hasNext()){
-                Request request = it.next();
-                if(!TextUtils.equals(request.filePath, IMAGE_ADD_TAG)) {
-                    it.remove();
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setTitle("清除")
+                .setMessage("请选择清除所有图片还是清除已经上传图片").
+                setNeutralButton("清除所有", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (mRequests != null && mRequests.size() > 0) {
+                    Iterator<Request> it = mRequests.iterator();
+                    while(it.hasNext()){
+                        Request request = it.next();
+                        if(!TextUtils.equals(request.filePath, IMAGE_ADD_TAG )) {
+                            it.remove();
+                        }
+                    }
+                    gridAdapter.notifyDataSetChanged();
+                    mHandler.sendEmptyMessage(UPDATE_UI);
                 }
             }
-            gridAdapter.notifyDataSetChanged();
-            mHandler.sendEmptyMessage(UPDATE_UI);
-        }
+        }).setNegativeButton("清除已上传", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                if (mRequests != null && mRequests.size() > 0) {
+                    Iterator<Request> it = mRequests.iterator();
+                    while(it.hasNext()){
+                        Request request = it.next();
+                        if(!TextUtils.equals(request.filePath, IMAGE_ADD_TAG ) && request.alreadyUploaded) {
+                            it.remove();
+                        }
+                    }
+                    if (mRequests.size() < MAX_PHOTO_SIZE && !containsAdd()) {
+                        Request request = new Request();
+                        request.filePath = IMAGE_ADD_TAG;
+                        mRequests.add(request);
+                    }
+                    gridAdapter.notifyDataSetChanged();
+                    mHandler.sendEmptyMessage(UPDATE_UI);
+                }
+            }
+        }).setPositiveButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+            }
+        }).create().show();
+    }
+
+    private void toast(CharSequence msg) {
+        Toast toast = Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER, 0, 0);
+        toast.show();
     }
 
     private class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.SiteViewHolder> {
@@ -365,14 +413,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 holder.mTextView.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.black));
             }else {
                 holder.image.setPadding(0, 0, 0, 0);
-                if (request.uploadStatus == UPLOAD_UPLOADING) {
-                    holder.mTextView.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.black));
+                if (request.alreadyUploaded) {
+                    holder.mTextView.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.green));
+                    holder.mTextView.setText(getString(R.string.already_uploaded));
                 } else {
-                    holder.mTextView.setTextColor(ContextCompat.getColor(getApplicationContext(),
-                            request.uploadStatus == UPLOAD_SUCCESS
-                            ? R.color.green : R.color.colorAccent));
+                    if (request.uploadStatus == UPLOAD_UPLOADING) {
+                        holder.mTextView.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.black));
+                    } else {
+                        holder.mTextView.setTextColor(ContextCompat.getColor(getApplicationContext(),
+                                request.uploadStatus == UPLOAD_SUCCESS
+                                        ? R.color.green : R.color.colorAccent));
+                    }
+                    holder.mTextView.setText(request.uploadMsg);
                 }
-                holder.mTextView.setText(request.uploadMsg);
                 Glide.with(MainActivity.this)
                         .load(request.filePath)
                         .placeholder(R.mipmap.default_error)
@@ -431,6 +484,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        FilesManager.getInstance().saveData(this.getApplicationContext());
         if (mHandler != null) {
             mHandler.removeCallbacksAndMessages(null);
             mHandler = null;

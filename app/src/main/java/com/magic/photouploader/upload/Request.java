@@ -5,6 +5,7 @@ package com.magic.photouploader.upload;
  */
 
 public class Request {
+    public boolean alreadyUploaded = false;
     public String filePath;
     public String uploadMsg;
     public int uploadStatus;

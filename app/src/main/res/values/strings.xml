@@ -12,4 +12,6 @@
     <string name="upload_50">Upload 50kg</string>
     <string name="add_text">Images or camera</string>
     <string name="clear">Clear</string>
+    <string name="already_uploaded">Already uploaded</string>
+    <string name="clear_first">Please clear the uploaded files first</string>
 </resources>
