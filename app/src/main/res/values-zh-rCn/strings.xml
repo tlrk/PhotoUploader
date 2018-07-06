@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">沙湾店</string>
+    <string name="app_name">南沙东涌店</string>
     <string name="upload_hint">请选择图片上传</string>
     <string name="camera">相机</string>
     <string name="uploading">正在上传中...</string>
