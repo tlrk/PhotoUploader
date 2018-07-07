@@ -3,6 +3,7 @@ package com.magic.photouploader;
 import android.app.Application;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.tencent.bugly.crashreport.CrashReport;
 import com.zhy.http.okhttp.OkHttpUtils;
 
 import java.util.concurrent.TimeUnit;
@@ -24,5 +25,6 @@ public class UploaderApplication extends Application
                 .build();
 
         OkHttpUtils.initClient(okHttpClient);
+        CrashReport.initCrashReport(getApplicationContext(), "77720a52b3", false);
     }
 }

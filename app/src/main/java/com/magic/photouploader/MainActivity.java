@@ -35,6 +35,7 @@ import com.magic.photouploader.upload.FlaskClient;
 import com.magic.photouploader.upload.Request;
 import com.magic.photouploader.upload.ServiceGenerator;
 import com.magic.photouploader.upload.UploadResult;
+import com.tencent.bugly.crashreport.CrashReport;
 
 import java.io.File;
 import java.io.IOException;

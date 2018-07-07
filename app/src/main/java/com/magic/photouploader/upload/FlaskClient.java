@@ -19,7 +19,7 @@ public interface FlaskClient {
 
     //上传图片
     @Multipart
-    @POST("test/upload.json")
+    @POST("gasPic/upload.json")
     Call<UploadResult> uploadMultipleFiles(
             @Part("type") int type,
             @Part("number") int num,
